@@ -20,15 +20,30 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SERVER_PASSWORD }}
         script: |
-          mkdir -p /app/cms-frontend
-          # 这里可以是在服务器端使用 git pull，或者是通过 rsync/scp 拷贝。
-          # 作为例子，这里我们假设服务器已经克隆了仓库，进入目录进行拉取并重启容器
-          cd /app/cms-frontend
-          if [ -d ".git" ]; then
-            git pull origin master
-          else
-            git clone https://github.com/hnhok/new-fronntend.git .
+          # 1. 初始化云服务器基建环境 (预防性安装 Git 和 Docker 等必备工具)
+          sudo apt-get update -y || echo "Skip apt update"
+          sudo apt-get install -y git curl || echo "Git/curl installed or failed"
+          
+          if ! command -v docker &> /dev/null; then
+            echo "未检测到 Docker，开始自动为您安装..."
+            curl -fsSL https://get.docker.com -o get-docker.sh
+            sudo sh get-docker.sh
+            sudo systemctl enable docker
+            sudo systemctl start docker
+            sudo usermod -aG docker $USER
+            sudo curl -L "https://github.com/docker/compose/releases/download/v2.21.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
           fi
           
-          # 启动或重启前端 Docker 容器
-          docker compose up -d --build frontend
+          mkdir -p /app/cms-frontend
+          cd /app/cms-frontend
+          
+          # 2. 拉取源代码
+          if [ -d ".git" ]; then
+            sudo git pull origin master
+          else
+            sudo git clone https://github.com/hnhok/new-fronntend.git .
+          fi
+          
+          # 3. 启动应用
+          sudo docker-compose up -d --build frontend
