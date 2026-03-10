@@ -20,24 +20,22 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         password: ${{ secrets.SERVER_PASSWORD }}
         script: |
-          # 1. 国内服务器专供版基建 (使用 ubuntu 内置的源，防阻断)
           export DEBIAN_FRONTEND=noninteractive
           sudo apt-get update -y || echo "Skip apt update"
-          sudo apt-get install -y git curl docker.io docker-compose-v2 || sudo apt-get install -y git curl docker.io docker-compose
-          
-          # 启动 Docker
+          sudo apt-get install -y git curl docker.io || true
           sudo systemctl enable docker || true
           sudo systemctl start docker || true
-          
+
           mkdir -p /app/cms-frontend
           cd /app/cms-frontend
           
-          # 2. 拉取源代码 (如果直连 github 失败的话，以后我们可以替换为镜像站)
           if [ -d ".git" ]; then
-            sudo git pull origin master || (echo "Git pull failed, maybe network issue, trying proxy..." && sudo git pull https://mirror.ghproxy.com/https://github.com/hnhok/new-fronntend.git master)
+            sudo git pull origin master || (echo "Git pull failed, trying proxy..." && sudo git pull https://mirror.ghproxy.com/https://github.com/hnhok/new-fronntend.git master)
           else
             sudo git clone https://github.com/hnhok/new-fronntend.git . || sudo git clone https://mirror.ghproxy.com/https://github.com/hnhok/new-fronntend.git .
           fi
           
-          # 3. 启动应用
-          sudo docker compose up -d --build frontend || sudo docker-compose up -d --build frontend
+          sudo docker stop cms-frontend || true
+          sudo docker rm cms-frontend || true
+          sudo docker build -t cms-frontend .
+          sudo docker run -d --name cms-frontend -p 80:80 -p 443:443 --restart always cms-frontend
