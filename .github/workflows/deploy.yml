@@ -43,11 +43,11 @@ jobs:
           cd /app/cms-frontend
           
           if [ -d ".git" ]; then
-            sudo git reset --hard
-            sudo git pull origin master || (echo "Git pull failed, trying proxy..." && sudo git pull https://mirror.ghproxy.com/https://github.com/hnhok/new-fronntend.git master)
+            sudo git reset --hard || true
+            sudo timeout 30s git pull origin master || (echo "Git pull failed, trying proxy..." && sudo git pull https://hub.fastgit.xyz/hnhok/new-fronntend.git master) || exit 1
           else
-            sudo rm -rf *
-            sudo git clone https://github.com/hnhok/new-fronntend.git . || (echo "Git clone failed, trying proxy..." && sudo git clone https://mirror.ghproxy.com/https://github.com/hnhok/new-fronntend.git .)
+            sudo rm -rf * || true
+            sudo timeout 30s git clone https://github.com/hnhok/new-fronntend.git . || (echo "Git clone failed, trying proxy..." && sudo git clone https://hub.fastgit.xyz/hnhok/new-fronntend.git .) || exit 1
           fi
           
           sudo docker stop cms-frontend || true
